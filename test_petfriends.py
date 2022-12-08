@@ -1,10 +1,6 @@
-import time
-from typing import Set, Dict, Any
-
 import pytest
 from selenium import webdriver
-from datetime import datetime
-from settings import valid_email, valid_password, valid_username
+from settings import valid_email, valid_password
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -31,6 +27,9 @@ def authorization():
 
 # Проверка страницы /all_pets
 def test_cards_all_pets():
+    # Настраиваем неявное ожидание
+    pytest.driver.implicitly_wait(10)
+
     # Собираем информацию о питомцах
     images = pytest.driver.find_elements('css selector', '.card-deck .card-img-top')
     names = pytest.driver.find_elements('css selector', '.card-deck .card-title')
@@ -48,22 +47,27 @@ def test_cards_all_pets():
 
 # Проверка, страницы /my_pets
 def test_list_my_pets():
+    # Настраиваем явное ожидание
+    waiter = WebDriverWait(pytest.driver, 10)
+
     # Переходим на страницу пользователя (/my_pets)
     pytest.driver.find_element('link text', 'Мои питомцы').click()
-    # Проверяем, что мы оказались на личной (/my_pets) странице
-    assert pytest.driver.find_element('tag name', 'h2').text == valid_username
+    # Ждём перехода на личную страницу (/my_pets)
+    assert waiter.until(EC.title_is('PetFriends: My Pets'))
 
     # Вытаскиваем оглавление из верхнего левого угла (с ником)
-    title = pytest.driver.find_element('xpath', '// *[ @ class = ".col-sm-4 left"]')
+    title = waiter.until(EC.presence_of_element_located((By.XPATH, '// *[ @ class = ".col-sm-4 left"]')))
     # Делим оглавление на строки, и вытаскиваем общее число питомцев
     title_pets_number = int(title.text.split('\n')[1][10:])
 
     # Считаем количество строк в таблице питомцев
-    pets_in_table_number = len(pytest.driver.find_elements('xpath', '// *[ @ id = "all_my_pets"] / table / tbody / tr'))
+    table_of_pets = waiter.until(EC.presence_of_all_elements_located((By.XPATH, '// *[ @ id = "all_my_pets"] / table / tbody / tr')))
+    pets_in_table_number = len(table_of_pets)
 
     # Составляем список питомцев и заодно считаем количество питомцев с фотографиями
     list_of_my_pets = []
     pets_with_photo_number = 0
+    # Поскольку всю таблицу с питомцами мы уже дождались, тут можно обойтись без явных ожиданий
     # Обращаться за каждым элементом на сайт - убогое решение, полюбому можно вытащить строку целиком и уже локально её парсить, но я пока так не умею :(
     for i in range(pets_in_table_number):
         photo = pytest.driver.find_element('xpath', f'// *[ @ id = "all_my_pets"] / table / tbody / tr[{i+1}] / th / img')
