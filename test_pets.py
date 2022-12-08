@@ -6,19 +6,16 @@ from selenium import webdriver
 from datetime import datetime
 from settings import valid_email, valid_password, valid_username
 
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
 
 @pytest.fixture(autouse=True)
-def testing():
+def authorization():
     pytest.driver = webdriver.Chrome('./webdriver/chromedriver.exe')
     # Переходим на страницу авторизации
     pytest.driver.get('http://petfriends.skillfactory.ru/login')
-
-    yield
-
-    pytest.driver.quit()
-
-# Проверка страницы /all_pets
-def test_cards_all_pets():
     # Вводим email
     pytest.driver.find_element('id', 'email').send_keys(valid_email)
     # Вводим пароль
@@ -27,6 +24,13 @@ def test_cards_all_pets():
     pytest.driver.find_element('css selector', 'button[type="submit"]').click()
     # Проверяем, что мы оказались на главной (/all_pets) странице
     assert pytest.driver.find_element('tag name', 'h1').text == "PetFriends"
+
+    yield
+
+    pytest.driver.quit()
+
+# Проверка страницы /all_pets
+def test_cards_all_pets():
     # Собираем информацию о питомцах
     images = pytest.driver.find_elements('css selector', '.card-deck .card-img-top')
     names = pytest.driver.find_elements('css selector', '.card-deck .card-title')
@@ -44,18 +48,10 @@ def test_cards_all_pets():
 
 # Проверка, страницы /my_pets
 def test_list_my_pets():
-    # Вводим email
-    pytest.driver.find_element('id', 'email').send_keys(valid_email)
-    # Вводим пароль
-    pytest.driver.find_element('id', 'pass').send_keys(valid_password)
-    # Нажимаем на кнопку входа в аккаунт
-    pytest.driver.find_element('css selector', 'button[type="submit"]').click()
     # Переходим на страницу пользователя (/my_pets)
     pytest.driver.find_element('link text', 'Мои питомцы').click()
     # Проверяем, что мы оказались на личной (/my_pets) странице
     assert pytest.driver.find_element('tag name', 'h2').text == valid_username
-
-    time.sleep(1)
 
     # Вытаскиваем оглавление из верхнего левого угла (с ником)
     title = pytest.driver.find_element('xpath', '// *[ @ class = ".col-sm-4 left"]')
